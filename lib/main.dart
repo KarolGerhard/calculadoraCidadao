@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 void main() => runApp(MyApp());
 
@@ -38,7 +39,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final _formKey = GlobalKey<FormState>();
   _CamposCalculo _valorCampo = new _CamposCalculo();
 
-  //NumberFormat formatter = NumberFormat("00.00")
+  NumberFormat formatter = NumberFormat("00.000,00");
 
   TextEditingController _mesesController = new TextEditingController();
   TextEditingController _jurosController = new TextEditingController();
@@ -81,6 +82,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
       // var taxaJuros = valorJuros / 100;
       valorDepositoRegular = (valorFinal / (((pow(1 + valorJuros, qtdMeses + 1) - 1) / valorJuros) - 1));
+
+//      String valorTeste = valorDepositoRegular.toStringAsPrecision(5);
+//      String valorFormatado = formatter.format(valorTeste);
       _capitalController.text = valorDepositoRegular.toStringAsPrecision(4);
       print(" ${valorDepositoRegular}");
       return  _capitalController;
@@ -259,6 +263,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+
 }
 
 
