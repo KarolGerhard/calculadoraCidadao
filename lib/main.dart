@@ -1,7 +1,7 @@
 import 'dart:math';
 
+import 'package:calculadoracidadaoapp/util/calculador.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 void main() => runApp(MyApp());
 
@@ -11,6 +11,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Calculadora Cidadão',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.indigo,
       ),
@@ -28,91 +29,67 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
-class _CamposCalculo {
-  String meses = '';
-  String taxaMensal = '';
-  String capitalAtual = '';
-  String valorFinal = '';
-}
 
 class _MyHomePageState extends State<MyHomePage> {
   final _formKey = GlobalKey<FormState>();
-  _CamposCalculo _valorCampo = new _CamposCalculo();
-
-  NumberFormat formatter = NumberFormat("00.000,00");
-
   TextEditingController _mesesController = new TextEditingController();
   TextEditingController _jurosController = new TextEditingController();
   TextEditingController _capitalController = new TextEditingController();
-  TextEditingController _valorFinalController =
-      new TextEditingController();
+  TextEditingController _valorFinalController = new TextEditingController();
 
-  void calculaValorFinal() {
-    setState(() {
-      double valorDepositoRegular = double.tryParse(_capitalController.text);
-      //150;
-      double valorJuros = double.tryParse(_jurosController.text) / 100;
-      // 0.012;
-      int qtdMeses = int.tryParse(_mesesController.text);
-      //  8;
+  void _calcular() {
+    var calculador = Calculador(
+      meses: _mesesController.text,
+      juros: _jurosController.text,
+      capitalAtual: _capitalController.text,
+      valorFinal: _valorFinalController.text,
+    );
 
-      double valorFinalObtido = double.tryParse(_capitalController.text);
+    try {
+      var campoCalculo = calculador.campoCalculo();
 
-      print(" ${valorDepositoRegular}");
-      print(" ${valorJuros}");
-      print(" ${qtdMeses}");
-
-      valorFinalObtido = (valorDepositoRegular * (((pow(1 + valorJuros, qtdMeses + 1) - 1) / valorJuros) - 1));
-      _valorFinalController.text = valorFinalObtido.toStringAsPrecision(3);
-      print(" ${valorFinalObtido}");
-      return _valorFinalController;
-    });
+      setState(() {
+        if (campoCalculo == Campo.VALOR_FINAL) {
+          _valorFinalController.text = calculador.calculaValorFinal();
+        } else if (campoCalculo == Campo.CAPITAL) {
+          _capitalController.text = calculador.calculaDepositoRegular();
+        } else if (campoCalculo == Campo.MESES) {
+          _mesesController.text = calculador.calculaPeriodo();
+        } else {
+          _jurosController.text = calculador.calculaJuros();
+        }
+      });
+    }
+    catch (e) {
+      showAlertDialog(context, e.message);
+    }
   }
 
-  void calculaDepositoRegular() {
-    setState(() {
-      double valorFinal = double.tryParse(_valorFinalController.text);
-      double valorJuros = double.tryParse(_jurosController.text) / 100;
-      int qtdMeses = int.tryParse(_mesesController.text);
-      double valorDepositoRegular = double.tryParse(_capitalController.text);
+  showAlertDialog(BuildContext context, String content) {
 
-      print(" ${valorFinal}");
-      print(" ${valorJuros}");
-      print(" ${qtdMeses}");
+    // set up the button
+    Widget okButton = FlatButton(
+      child: Text("OK"),
+      onPressed: () => Navigator.pop(context),
+    );
 
-      // var taxaJuros = valorJuros / 100;
-      valorDepositoRegular = (valorFinal / (((pow(1 + valorJuros, qtdMeses + 1) - 1) / valorJuros) - 1));
+    // set up the AlertDialog
+    AlertDialog alert = AlertDialog(
+      title: Text("Erro ao calcular"),
+      content: Text(content),
+      actions: [
+        okButton,
+      ],
+    );
 
-//      String valorTeste = valorDepositoRegular.toStringAsPrecision(5);
-//      String valorFormatado = formatter.format(valorTeste);
-      _capitalController.text = valorDepositoRegular.toStringAsPrecision(4);
-      print(" ${valorDepositoRegular}");
-      return  _capitalController;
-    });
+    // show the dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
   }
-
-  void qualOCalculo(){
-    setState(() {
-      if(_mesesController.text != null  && _jurosController.value != null && _capitalController.text != null && _valorFinalController.text == null){
-        calculaValorFinal();
-        // ignore: unnecessary_statements
-
-      }
-     if(_mesesController.text != null && _jurosController.text != null && _valorFinalController.text != null){
-        calculaDepositoRegular();
-       // this._capitalController.text;
-      }
-    });
-  }
-
-//  void calculaQtdMes(double valorFinal, double valorDepositoRegular, double valorJuros){
-//    setState(() {
-//      var taxaJuros = valorJuros/100;
-//      var qtdMeses = (valorFinal / ((pow(1 + taxaJuros, qtdMeses + 1) - 1) / taxaJuros));
-//      return valorDepositoRegular;
-//    }
-//    );
-//  }
 
   @override
   Widget build(BuildContext context) {
@@ -120,150 +97,152 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Column(
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Center(
-                child: Text(
-              "Simule sua aplicação financeira",
-              style: TextStyle(color: Colors.indigo, fontSize: 20),
-            )),
-          ),
-          Container(
-            child: Padding(
-              padding: const EdgeInsets.all(25.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    TextFormField(
-                      autofocus: true,
-                      controller: _mesesController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                              color: Colors.lightGreenAccent, width: 3.0),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.lightGreen, width: 3.0),
-                        ),
-                        labelText: 'Número de meses',
+      body: SingleChildScrollView(
+        child: Column(
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Center(
+                  child: Text(
+                    "Simule o valor futuro de um capital",
+                    style: TextStyle(color: Colors.indigo, fontSize: 20),
+                  )),
+            ),
+            Container(
+              child: Padding(
+                padding: const EdgeInsets.all(25.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      TextFormField(
+                        autofocus: true,
+                        controller: _mesesController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                                color: Colors.lightGreenAccent, width: 3.0),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                                color: Colors.lightGreen, width: 3.0),
+                          ),
+                          labelText: 'Número de meses',
 //                      suffixIcon: IconButton(
 //                        onPressed: () => _controller.clear(),
 //                        icon: Icon(Icons.clear),
 //                      )
+                        ),
+                        onSaved: (String value) {
+                          this._mesesController =
+                          value as TextEditingController;
+                        },
                       ),
-                      onSaved: (String value) {
-                        this._mesesController = value as TextEditingController;
-                      },
-                    ),
-                    Divider(),
-                    TextFormField(
-                      autofocus: true,
-                      controller: _jurosController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                              color: Colors.lightGreenAccent, width: 3.0),
+                      Divider(),
+                      TextFormField(
+                        autofocus: true,
+                        controller: _jurosController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                                color: Colors.lightGreenAccent, width: 3.0),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                                color: Colors.lightGreen, width: 3.0),
+                          ),
+                          labelText: 'Taxa de juros mensal (%) ',
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.lightGreen, width: 3.0),
-                        ),
-                        labelText: 'Taxa de juros mensal (%) ',
+                        onSaved: (String value) {
+                          this._jurosController =
+                          value as TextEditingController;
+                        },
                       ),
-                      onSaved: (String value) {
-                        this._jurosController = value as TextEditingController;
-                      },
-                    ),
-
-                    Divider(),
-                    TextFormField(
-                      autofocus: true,
-                      controller: _capitalController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                              color: Colors.lightGreenAccent, width: 3.0),
+                      Divider(),
+                      TextFormField(
+                        autofocus: true,
+                        controller: _capitalController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                                color: Colors.lightGreenAccent, width: 3.0),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                                color: Colors.lightGreen, width: 3.0),
+                          ),
+                          labelText: 'Capital atual',
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.lightGreen, width: 3.0),
-                        ),
-                        labelText: 'Capital atual',
+                        onSaved: (String value) {
+                          this._capitalController =
+                          value as TextEditingController;
+                        },
                       ),
-                      onSaved: (String value) {
-                        this._capitalController = value as TextEditingController;
-                      },
-                    ),
-                    Divider(),
-                    TextFormField(
-                      autofocus: true,
-                      controller: _valorFinalController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                              color: Colors.lightGreenAccent, width: 3.0),
+                      Divider(),
+                      TextFormField(
+                        autofocus: true,
+                        controller: _valorFinalController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                                color: Colors.lightGreenAccent, width: 3.0),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                                color: Colors.lightGreen, width: 3.0),
+                          ),
+                          labelText: 'Valor obtido no final',
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.lightGreen, width: 3.0),
-                        ),
-                        labelText: 'Valor obtido no final',
+                        onSaved: (String value) {
+                          this._valorFinalController =
+                          value as TextEditingController;
+                        },
                       ),
-                      onSaved: (String value) {
-                        this._valorFinalController = value as TextEditingController;
-                      },
-                    ),
-                    Divider(),
-                    ButtonTheme(
-                      height: 40.0,
-                      child: RaisedButton(
-                        onPressed: qualOCalculo,
-                        shape: new RoundedRectangleBorder(
-                            borderRadius: new BorderRadius.circular(10.0)),
+                      Divider(),
+                      ButtonTheme(
+                        height: 40.0,
+                        child: RaisedButton(
+                          onPressed: _calcular,
+                          shape: new RoundedRectangleBorder(
+                              borderRadius: new BorderRadius.circular(10.0)),
+                          child: Text(
+                            "Calcular",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold),
+                          ),
+                          color: Colors.lightBlue,
+                        ),
+                      ),
+                      FlatButton(
+                        onPressed: () {
+                          if (_formKey.currentState.validate()) {
+                            _mesesController.clear();
+                            _jurosController.clear();
+                            _capitalController.clear();
+                            _valorFinalController.clear();
+                          }
+                        },
                         child: Text(
-                          "Calcular",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold),
+                          'Limpar',
+                          style: TextStyle(color: Colors.blue, fontSize: 18),
                         ),
-                        color: Colors.lightBlue,
                       ),
-                    ),
-                    FlatButton(
-                      onPressed: () {
-                        if (_formKey.currentState.validate()) {
-                          _mesesController.clear();
-                          _jurosController.clear();
-                          _capitalController.clear();
-                          _valorFinalController.clear();
-                        }
-                      },
-                      child: Text(
-                        'Limpar',
-                        style: TextStyle(color: Colors.blue, fontSize: 18),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
-
 }
-
-
